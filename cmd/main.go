@@ -6,13 +6,16 @@ import (
 	"crypto/x509"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	c "github.com/VersusControl/versus-incident/pkg/config"
 	"github.com/VersusControl/versus-incident/pkg/controllers"
 	"github.com/VersusControl/versus-incident/pkg/core"
 	"github.com/VersusControl/versus-incident/pkg/middleware"
 	"github.com/VersusControl/versus-incident/pkg/routes"
+	"github.com/VersusControl/versus-incident/pkg/scheduler"
 	"github.com/VersusControl/versus-incident/pkg/services"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssmincidents"
@@ -80,16 +83,45 @@ func main() {
 		core.InitOnCallWorkflow(awsClient, redisClient)
 	}
 
+	// Initialize and start scheduled alert jobs
+	var alertScheduler *scheduler.Scheduler
+	if cfg.ScheduledAlert.Enable {
+		alertScheduler = scheduler.NewScheduler(&cfg.ScheduledAlert)
+		if err := alertScheduler.Start(); err != nil {
+			log.Fatalf("Failed to start scheduler: %v", err)
+		}
+		// Set scheduler for controller to expose status endpoint
+		controllers.SetScheduler(alertScheduler)
+	}
+
+	// Setup graceful shutdown
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+
+		log.Println("Shutting down...")
+		if alertScheduler != nil {
+			alertScheduler.Stop()
+		}
+		app.Shutdown()
+	}()
+
 	addr := cfg.Host + ":" + strconv.Itoa(cfg.Port)
 
-	printCustomBanner()
+	printCustomBanner(cfg.ScheduledAlert.Enable)
 	if err := app.Listen(addr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
 
-func printCustomBanner() {
+func printCustomBanner(schedulerEnabled bool) {
 	cfg := c.GetConfig()
+
+	schedulerStatus := "disabled"
+	if schedulerEnabled {
+		schedulerStatus = "enabled"
+	}
 
 	log.Printf(`
 
@@ -104,10 +136,11 @@ V       V   EEEEE   RRRRR   SSSSS   U       U   SSSSS
 │       (bound on host %s and port %d)       │
 └───────────────────────────────────────────────────┘
 
-/api/incidents -> receive incident data
+/api/incidents    -> receive incident data
 /api%s       -> receive alerts from AWS SNS
-/api/ack       -> acknowledge on-call alerts
-`, cfg.Host, cfg.Port, cfg.Queue.SNS.EndpointPath)
+/api/ack          -> acknowledge on-call alerts
+Scheduled Alerts  -> %s
+`, cfg.Host, cfg.Port, cfg.Queue.SNS.EndpointPath, schedulerStatus)
 }
 
 func handleQueueMessage(content *map[string]interface{}) error {

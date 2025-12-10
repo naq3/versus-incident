@@ -16,10 +16,11 @@ type Config struct {
 	Port       int
 	PublicHost string `mapstructure:"public_host"`
 
-	Alert  AlertConfig
-	Queue  QueueConfig
-	OnCall OnCallConfig
-	Proxy  ProxyConfig
+	Alert          AlertConfig
+	Queue          QueueConfig
+	OnCall         OnCallConfig
+	Proxy          ProxyConfig
+	ScheduledAlert ScheduledAlertConfig `mapstructure:"scheduled_alert"`
 
 	Redis RedisConfig `mapstructure:"redis"`
 }
@@ -155,6 +156,39 @@ type RedisConfig struct {
 	Password           string `mapstructure:"password"`
 	DB                 int    `mapstructure:"db"`
 	InsecureSkipVerify bool   `mapstructure:"insecure_skip_verify"`
+}
+
+// ScheduledAlertConfig holds configuration for scheduled alert fetching
+type ScheduledAlertConfig struct {
+	Enable   bool           `mapstructure:"enable"`
+	Timezone string         `mapstructure:"timezone"` // e.g., "Asia/Ho_Chi_Minh"
+	Jobs     []ScheduledJob `mapstructure:"jobs"`
+}
+
+// ScheduledJob represents a single scheduled job configuration
+type ScheduledJob struct {
+	Name         string                   `mapstructure:"name"`
+	Enable       bool                     `mapstructure:"enable"`
+	Schedule     string                   `mapstructure:"schedule"`      // Cron expression (e.g., "0 9 * * *" for 9:00 AM daily)
+	Alertmanager AlertmanagerConfig       `mapstructure:"alertmanager"`
+	MatchLabels  map[string]string        `mapstructure:"match_labels"` // Labels to filter alerts
+	Channels     ScheduledChannelsConfig  `mapstructure:"channels"`     // Override notification channels
+}
+
+// AlertmanagerConfig holds Alertmanager connection settings
+type AlertmanagerConfig struct {
+	URL      string `mapstructure:"url"`      // Alertmanager API URL (e.g., "http://alertmanager:9093")
+	Username string `mapstructure:"username"` // Optional basic auth username
+	Password string `mapstructure:"password"` // Optional basic auth password
+}
+
+// ScheduledChannelsConfig allows overriding notification channels per job
+type ScheduledChannelsConfig struct {
+	SlackChannelID    string `mapstructure:"slack_channel_id"`
+	TelegramChatID    string `mapstructure:"telegram_chat_id"`
+	LarkWebhookKey    string `mapstructure:"lark_webhook_key"`    // Key from other_webhook_urls
+	MSTeamsPowerURLKey string `mapstructure:"msteams_power_url_key"` // Key from other_power_urls
+	EmailTo           string `mapstructure:"email_to"`
 }
 
 var (

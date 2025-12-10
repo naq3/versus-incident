@@ -17,4 +17,7 @@ func SetupRoutes(app *fiber.App) {
 	incidents.Post("/", controllers.CreateIncident)
 
 	api.Get("/ack/:incidentID", controllers.HandleAck)
+
+	// Scheduler status endpoint
+	api.Get("/scheduler/status", controllers.GetSchedulerStatus)
 }

@@ -9,3 +9,37 @@ alert:
     enable: true
     webhook_url: "https://open.larksuite.com/open-apis/bot/v2/hook/347c47a8-1896-45bd-b7e8-8444c0260d99"
     template_path: "config/lark_message.tmpl"
+
+# Scheduled Alert Configuration
+# Periodically fetch alerts from Alertmanager and send to notification channels
+scheduled_alert:
+  enable: true # Set to true to enable scheduled alerts
+  timezone: "Asia/Ho_Chi_Minh" # Timezone for schedule (default: local)
+
+  jobs:
+    - name: "daily-critical-alerts"
+      enable: true
+      schedule: "*/1 * * * *" # TEST: Run every 1 minute (change back to "0 9 * * *" for production)
+      alertmanager:
+        url: "http://localhost:61098" # Alertmanager API URL
+        username: "" # Optional: basic auth username
+        password: "" # Optional: basic auth password
+      match_labels: # Filter alerts by labels (all must match)
+        namespace: "airbyte"
+        alertname: "KubePodNotReady"
+        # severity: "critical"
+        # alertname: "HighMemoryUsage"  # Uncomment to filter by alertname
+      # channels: # Optional: override notification channels for this job
+      # slack_channel_id: "C12345678"
+      # telegram_chat_id: "-100123456789"
+      # lark_webhook_key: "dev"  # Use key from other_webhook_urls
+      # email_to: "alerts@example.com"
+
+    # Example: Send warning alerts at 6 PM
+    # - name: "evening-warning-alerts"
+    #   enable: true
+    #   schedule: "0 18 * * *"  # 6:00 PM every day
+    #   alertmanager:
+    #     url: "http://alertmanager:9093"
+    #   match_labels:
+    #     severity: "warning"
