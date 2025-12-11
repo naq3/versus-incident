@@ -177,6 +177,53 @@ data:
       {{- end }}
       {{- end }}
 
+    {{- if .Values.scheduledAlert.enable }}
+    # Scheduled Alert Configuration
+    scheduled_alert:
+      enable: {{ .Values.scheduledAlert.enable }}
+      {{- if .Values.scheduledAlert.timezone }}
+      timezone: "{{ .Values.scheduledAlert.timezone }}"
+      {{- end }}
+      jobs:
+      {{- range .Values.scheduledAlert.jobs }}
+        - name: "{{ .name }}"
+          enable: {{ .enable }}
+          schedule: "{{ .schedule }}"
+          alertmanager:
+            url: "{{ .alertmanager.url }}"
+            {{- if .alertmanager.username }}
+            username: "{{ .alertmanager.username }}"
+            {{- end }}
+            {{- if .alertmanager.password }}
+            password: "{{ .alertmanager.password }}"
+            {{- end }}
+          {{- if .matchLabels }}
+          match_labels:
+            {{- range $key, $val := .matchLabels }}
+            {{ $key }}: "{{ $val }}"
+            {{- end }}
+          {{- end }}
+          {{- if .channels }}
+          channels:
+            {{- if .channels.slackChannelId }}
+            slack_channel_id: "{{ .channels.slackChannelId }}"
+            {{- end }}
+            {{- if .channels.telegramChatId }}
+            telegram_chat_id: "{{ .channels.telegramChatId }}"
+            {{- end }}
+            {{- if .channels.larkWebhookKey }}
+            lark_webhook_key: "{{ .channels.larkWebhookKey }}"
+            {{- end }}
+            {{- if .channels.msteamsPowerUrlKey }}
+            msteams_power_url_key: "{{ .channels.msteamsPowerUrlKey }}"
+            {{- end }}
+            {{- if .channels.emailTo }}
+            email_to: "{{ .channels.emailTo }}"
+            {{- end }}
+          {{- end }}
+      {{- end }}
+    {{- end }}
+
   {{- if .Values.templates.slack }}
   slack_message.tmpl: |
 {{ .Values.templates.slack | indent 4 }}

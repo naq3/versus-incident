@@ -291,3 +291,27 @@ templates: {}
   #   
   #   [Click here to acknowledge]({{.AckURL}})
   #   {{ end }}
+
+# Scheduled Alert Configuration
+# Periodically fetch alerts from Alertmanager and send to notification channels
+scheduledAlert:
+  enable: false
+  timezone: "UTC"  # e.g., "Asia/Ho_Chi_Minh", "America/New_York"
+  
+  jobs: []
+  # Example job configuration:
+  # - name: "daily-critical-alerts"
+  #   enable: true
+  #   schedule: "0 9 * * *"  # Cron expression: 9:00 AM every day
+  #   alertmanager:
+  #     url: "http://alertmanager.monitoring.svc.cluster.local:9093"
+  #     username: ""  # Optional: basic auth
+  #     password: ""  # Optional: basic auth
+  #   matchLabels:  # Filter alerts by labels (all must match)
+  #     severity: "critical"
+  #     namespace: "production"
+  #   channels:  # Optional: override notification channels for this job
+  #     slackChannelId: "C12345678"
+  #     telegramChatId: "-100123456789"
+  #     larkWebhookKey: "prod"  # Use key from alert.lark.otherWebhookUrls
+  #     emailTo: "oncall@example.com"
